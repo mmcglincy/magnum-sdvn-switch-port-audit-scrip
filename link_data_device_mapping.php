@@ -95,6 +95,7 @@ fclose($statusHandle);
 
 $records = [];
 $maxEnetByDevice = [];
+$presentEnetByDevice = [];
 
 $sdvnHandle = fopen($sdvnCsvPath, 'r');
 if ($sdvnHandle === false) {
@@ -139,7 +140,7 @@ while (($row = fgetcsv($sdvnHandle)) !== false) {
 
         $records[] = [
             'device_name' => $deviceName,
-            'raw_enet_number' => $enetNumber,
+            'enet_number' => $enetNumber,
             'link_capacity' => $capacityValue,
             'link_name' => $linkName,
         ];
@@ -147,6 +148,11 @@ while (($row = fgetcsv($sdvnHandle)) !== false) {
         if (!isset($maxEnetByDevice[$deviceName]) || $enetNumber > $maxEnetByDevice[$deviceName]) {
             $maxEnetByDevice[$deviceName] = $enetNumber;
         }
+
+        if (!isset($presentEnetByDevice[$deviceName])) {
+            $presentEnetByDevice[$deviceName] = [];
+        }
+        $presentEnetByDevice[$deviceName][$enetNumber] = true;
     }
 }
 fclose($sdvnHandle);
@@ -164,21 +170,53 @@ if ($outputHandle === false) {
 
 fputcsv($outputHandle, ['device_naame', 'enet_number', 'link_capacity', 'link_state']);
 
+$outputRows = [];
 foreach ($records as $record) {
     $deviceName = $record['device_name'];
     $linkName = $record['link_name'];
-
-    $mappedEnetNumber = $bucketByDevice[$deviceName] ?? $record['raw_enet_number'];
     $linkState = $statusMap[$linkName] ?? '';
 
+    $outputRows[] = [
+        'device_name' => $deviceName,
+        'enet_number' => (int)$record['enet_number'],
+        'link_capacity' => (string)$record['link_capacity'],
+        'link_state' => $linkState,
+    ];
+}
+
+foreach ($bucketByDevice as $deviceName => $bucketLimit) {
+    for ($enetNumber = 1; $enetNumber <= $bucketLimit; $enetNumber++) {
+        if (isset($presentEnetByDevice[$deviceName][$enetNumber])) {
+            continue;
+        }
+
+        $outputRows[] = [
+            'device_name' => $deviceName,
+            'enet_number' => $enetNumber,
+            'link_capacity' => '',
+            'link_state' => '',
+        ];
+    }
+}
+
+usort($outputRows, static function (array $a, array $b): int {
+    $deviceCompare = strcmp($a['device_name'], $b['device_name']);
+    if ($deviceCompare !== 0) {
+        return $deviceCompare;
+    }
+
+    return $a['enet_number'] <=> $b['enet_number'];
+});
+
+foreach ($outputRows as $row) {
     fputcsv($outputHandle, [
-        $deviceName,
-        (string)$mappedEnetNumber,
-        (string)$record['link_capacity'],
-        $linkState,
+        $row['device_name'],
+        (string)$row['enet_number'],
+        $row['link_capacity'],
+        $row['link_state'],
     ]);
 }
 
 fclose($outputHandle);
 
-fwrite(STDOUT, "Wrote " . count($records) . " rows to {$outputCsvPath}\n");
+fwrite(STDOUT, "Wrote " . count($outputRows) . " rows to {$outputCsvPath}\n");

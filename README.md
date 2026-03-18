@@ -23,3 +23,9 @@ Output CSV columns:
 2. `enet_number`
 3. `link_capacity`
 4. `link_state`
+
+Behavior notes:
+- keeps each observed `enet_number` from the SDVN file unchanged
+- calculates a per-device ENET bucket (`1, 32, 64, 128, 256, 512, 1024`) from the largest observed ENET value
+- adds rows for missing ENET numbers from `1..bucket` for each device (with blank `link_capacity` and `link_state`)
+- sorts output by `device_naame` (column 1), then `enet_number` (column 2)
