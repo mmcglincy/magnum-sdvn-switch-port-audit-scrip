@@ -261,14 +261,21 @@ foreach ($outputRows as $row) {
 foreach ($indexesByDevicePhysicalPort as $deviceName => $physicalPorts) {
     foreach ($physicalPorts as $physicalPort => $rowIndexes) {
         $hasTwentyFive = false;
+        $hasTen = false;
+        $hasHundred = false;
         foreach ($rowIndexes as $rowIndex) {
             if (capacityEquals((string)$outputRows[$rowIndex]['link_capacity'], 25.0)) {
                 $hasTwentyFive = true;
-                break;
+            }
+            if (capacityEquals((string)$outputRows[$rowIndex]['link_capacity'], 10.0)) {
+                $hasTen = true;
+            }
+            if (capacityEquals((string)$outputRows[$rowIndex]['link_capacity'], 100.0)) {
+                $hasHundred = true;
             }
         }
 
-        if (!$hasTwentyFive) {
+        if (!$hasTwentyFive && !$hasTen && !$hasHundred) {
             continue;
         }
 
@@ -292,6 +299,14 @@ foreach ($indexesByDevicePhysicalPort as $deviceName => $physicalPorts) {
 
         foreach ($rowIndexes as $rowIndex) {
             $outputRows[$rowIndex]['physical_port_used'] = $physicalPortUsed ? 'true' : 'false';
+        }
+
+        if (!$physicalPortUsed) {
+            foreach ($rowIndexes as $rowIndex) {
+                if (trim((string)$outputRows[$rowIndex]['link_capacity']) === '') {
+                    $outputRows[$rowIndex]['link_capacity'] = 'OPEN';
+                }
+            }
         }
     }
 }

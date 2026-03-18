@@ -33,5 +33,7 @@ Behavior notes:
 - calculates `physical_port` as groups of 8 ENETs (`1-8 => 1`, `9-16 => 2`, ...)
 - marks `physical_port_used` as `true` for all rows in a physical port if any row in that physical port has a non-blank `link_capacity`; otherwise `false`
 - if any `link_capacity` equals `100`, marks the next three ENET rows for that device as `USED` when blank
-- if any `link_capacity` equals `25`, marks blank `link_capacity` rows in that same physical port as `OPEN`
+- if any `link_capacity` equals `100`, marks any remaining blank `link_capacity` rows in that same physical port as `OPEN`
+- if any `link_capacity` equals `25` or `10`, marks blank `link_capacity` rows in that same physical port as `OPEN`
+- if a physical port is marked `physical_port_used=false`, any blank `link_capacity` rows in that physical port are marked as `OPEN`
 - sorts output by `device_naame` (column 1), then `enet_number` (column 2)
