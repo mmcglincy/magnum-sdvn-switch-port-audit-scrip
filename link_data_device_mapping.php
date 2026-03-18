@@ -333,4 +333,72 @@ foreach ($outputRows as $row) {
 
 fclose($outputHandle);
 
-fwrite(STDOUT, "Wrote " . count($outputRows) . " rows to {$outputCsvPath}\n");
+$atAGlancePath = dirname($outputCsvPath) . DIRECTORY_SEPARATOR . 'at_a_glance.csv';
+$atAGlanceByDevice = [];
+
+foreach ($outputRows as $row) {
+    $deviceName = (string)$row['device_name'];
+    $physicalPort = (int)$row['physical_port'];
+    $enetNumber = (int)$row['enet_number'];
+    $linkCapacity = trim((string)$row['link_capacity']);
+    $linkState = trim((string)$row['link_state']);
+    $physicalPortUsed = strtolower(trim((string)$row['physical_port_used'])) === 'true';
+
+    if (!isset($atAGlanceByDevice[$deviceName])) {
+        $atAGlanceByDevice[$deviceName] = [
+            'down_links' => 0,
+            'open_physical_ports' => [],
+            'total_open_lanes' => [],
+            'open_lanes_on_partially_used_physical_ports' => [],
+        ];
+    }
+
+    if (strcasecmp($linkState, 'Down') === 0) {
+        $atAGlanceByDevice[$deviceName]['down_links']++;
+    }
+
+    if (!$physicalPortUsed) {
+        $atAGlanceByDevice[$deviceName]['open_physical_ports'][$physicalPort] = true;
+    }
+
+    if (strcasecmp($linkCapacity, 'OPEN') === 0 && !$physicalPortUsed) {
+        $atAGlanceByDevice[$deviceName]['total_open_lanes'][$physicalPort] = true;
+    }
+
+    if (strcasecmp($linkCapacity, 'OPEN') === 0 && $physicalPortUsed) {
+        $atAGlanceByDevice[$deviceName]['open_lanes_on_partially_used_physical_ports'][$enetNumber] = true;
+    }
+}
+
+$atAGlanceHandle = fopen($atAGlancePath, 'w');
+if ($atAGlanceHandle === false) {
+    fwrite(STDERR, "Unable to write output file: {$atAGlancePath}\n");
+    exit(1);
+}
+
+fputcsv($atAGlanceHandle, [
+    'device_name',
+    'down_links',
+    'open_physical ports',
+    'total_open_lanes',
+    'open_lanes_on_partially_used_physical_ports',
+]);
+
+ksort($atAGlanceByDevice, SORT_STRING);
+foreach ($atAGlanceByDevice as $deviceName => $summary) {
+    fputcsv($atAGlanceHandle, [
+        $deviceName,
+        (string)$summary['down_links'],
+        (string)count($summary['open_physical_ports']),
+        (string)count($summary['total_open_lanes']),
+        (string)count($summary['open_lanes_on_partially_used_physical_ports']),
+    ]);
+}
+
+fclose($atAGlanceHandle);
+
+fwrite(
+    STDOUT,
+    "Wrote " . count($outputRows) . " rows to {$outputCsvPath} and "
+    . count($atAGlanceByDevice) . " rows to {$atAGlancePath}\n"
+);

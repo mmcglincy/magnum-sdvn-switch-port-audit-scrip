@@ -37,3 +37,13 @@ Behavior notes:
 - if any `link_capacity` equals `25` or `10`, marks blank `link_capacity` rows in that same physical port as `OPEN`
 - if a physical port is marked `physical_port_used=false`, any blank `link_capacity` rows in that physical port are marked as `OPEN`
 - sorts output by `device_naame` (column 1), then `enet_number` (column 2)
+
+Additional output file:
+- `at_a_glance.csv` (written in the same directory as the main output CSV)
+
+`at_a_glance.csv` columns:
+1. `device_name`
+2. `down_links` - count of rows with `link_state` equal to `Down` for the device
+3. `open_physical ports` - count of unique `physical_port` where `physical_port_used` is `false`
+4. `total_open_lanes` - count of unique `physical_port` where `link_capacity` is `OPEN` and `physical_port_used` is `false`
+5. `open_lanes_on_partially_used_physical_ports` - count of unique `enet_number` where `link_capacity` is `OPEN` and `physical_port_used` is `true`
