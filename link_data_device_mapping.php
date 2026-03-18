@@ -64,6 +64,16 @@ function smallestBucketForMaxEnet(int $maxEnet, array $buckets): int
     return (int)end($buckets);
 }
 
+function capacityEquals(string $capacityValue, float $target): bool
+{
+    $capacityValue = trim($capacityValue);
+    if ($capacityValue === '' || !is_numeric($capacityValue)) {
+        return false;
+    }
+
+    return (float)$capacityValue === $target;
+}
+
 $statusMap = [];
 $statusHandle = fopen($statusCsvPath, 'r');
 if ($statusHandle === false) {
@@ -168,7 +178,7 @@ if ($outputHandle === false) {
     exit(1);
 }
 
-fputcsv($outputHandle, ['device_naame', 'enet_number', 'link_capacity', 'link_state']);
+fputcsv($outputHandle, ['device_naame', 'enet_number', 'physical_port', 'link_capacity', 'link_state', 'physical_port_used']);
 
 $outputRows = [];
 foreach ($records as $record) {
@@ -199,6 +209,93 @@ foreach ($bucketByDevice as $deviceName => $bucketLimit) {
     }
 }
 
+$indexesByDeviceEnet = [];
+$indexesByDevicePhysicalPort = [];
+
+foreach ($outputRows as $index => &$row) {
+    $enetNumber = (int)$row['enet_number'];
+    $physicalPort = intdiv($enetNumber - 1, 8) + 1;
+    $row['physical_port'] = $physicalPort;
+    $row['physical_port_used'] = 'false';
+
+    $deviceName = $row['device_name'];
+    if (!isset($indexesByDeviceEnet[$deviceName])) {
+        $indexesByDeviceEnet[$deviceName] = [];
+    }
+    if (!isset($indexesByDeviceEnet[$deviceName][$enetNumber])) {
+        $indexesByDeviceEnet[$deviceName][$enetNumber] = [];
+    }
+    $indexesByDeviceEnet[$deviceName][$enetNumber][] = $index;
+
+    if (!isset($indexesByDevicePhysicalPort[$deviceName])) {
+        $indexesByDevicePhysicalPort[$deviceName] = [];
+    }
+    if (!isset($indexesByDevicePhysicalPort[$deviceName][$physicalPort])) {
+        $indexesByDevicePhysicalPort[$deviceName][$physicalPort] = [];
+    }
+    $indexesByDevicePhysicalPort[$deviceName][$physicalPort][] = $index;
+}
+unset($row);
+
+foreach ($outputRows as $row) {
+    if (!capacityEquals((string)$row['link_capacity'], 100.0)) {
+        continue;
+    }
+
+    $deviceName = $row['device_name'];
+    $baseEnet = (int)$row['enet_number'];
+    for ($offset = 1; $offset <= 3; $offset++) {
+        $targetEnet = $baseEnet + $offset;
+        if (!isset($indexesByDeviceEnet[$deviceName][$targetEnet])) {
+            continue;
+        }
+
+        foreach ($indexesByDeviceEnet[$deviceName][$targetEnet] as $targetIndex) {
+            if (trim((string)$outputRows[$targetIndex]['link_capacity']) === '') {
+                $outputRows[$targetIndex]['link_capacity'] = 'USED';
+            }
+        }
+    }
+}
+
+foreach ($indexesByDevicePhysicalPort as $deviceName => $physicalPorts) {
+    foreach ($physicalPorts as $physicalPort => $rowIndexes) {
+        $hasTwentyFive = false;
+        foreach ($rowIndexes as $rowIndex) {
+            if (capacityEquals((string)$outputRows[$rowIndex]['link_capacity'], 25.0)) {
+                $hasTwentyFive = true;
+                break;
+            }
+        }
+
+        if (!$hasTwentyFive) {
+            continue;
+        }
+
+        foreach ($rowIndexes as $rowIndex) {
+            if (trim((string)$outputRows[$rowIndex]['link_capacity']) === '') {
+                $outputRows[$rowIndex]['link_capacity'] = 'OPEN';
+            }
+        }
+    }
+}
+
+foreach ($indexesByDevicePhysicalPort as $deviceName => $physicalPorts) {
+    foreach ($physicalPorts as $physicalPort => $rowIndexes) {
+        $physicalPortUsed = false;
+        foreach ($rowIndexes as $rowIndex) {
+            if (trim((string)$outputRows[$rowIndex]['link_capacity']) !== '') {
+                $physicalPortUsed = true;
+                break;
+            }
+        }
+
+        foreach ($rowIndexes as $rowIndex) {
+            $outputRows[$rowIndex]['physical_port_used'] = $physicalPortUsed ? 'true' : 'false';
+        }
+    }
+}
+
 usort($outputRows, static function (array $a, array $b): int {
     $deviceCompare = strcmp($a['device_name'], $b['device_name']);
     if ($deviceCompare !== 0) {
@@ -212,8 +309,10 @@ foreach ($outputRows as $row) {
     fputcsv($outputHandle, [
         $row['device_name'],
         (string)$row['enet_number'],
+        (string)$row['physical_port'],
         $row['link_capacity'],
         $row['link_state'],
+        $row['physical_port_used'],
     ]);
 }
 
