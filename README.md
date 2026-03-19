@@ -45,7 +45,6 @@ Additional output file:
 1. `device_name`
 2. `down_links` - count of rows with `link_state` equal to `Down` for the device
 3. `open_physical ports` - count of unique `physical_port` where `physical_port_used` is `false`
-4. `total total_open_lanes` - count of unique `enet_number` where `link_capacity` is `OPEN`
-5. `total_open_lanes` - count of unique `physical_port` where `link_capacity` is `OPEN` and `physical_port_used` is `false`
-6. `used_physical ports` - count of unique `physical_port` where `physical_port_used` is `true`
-7. `total_used_lanes` - count of unique `physical_port` where `link_capacity` is not `OPEN` and `physical_port_used` is `true`
+4. `total_open_lanes` - count of unique `enet_number` where `link_capacity` is `OPEN`
+5. `used_physical ports` - count of unique `physical_port` where `physical_port_used` is `true`
+6. `total_used_lanes` - count of unique `enet_number` where `link_capacity` is not `OPEN` and `physical_port_used` is `true`
