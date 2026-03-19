@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * Usage:
  *   php link_data_device_mapping.php <link_status.csv> <link_sdvn.csv> [output.csv]
