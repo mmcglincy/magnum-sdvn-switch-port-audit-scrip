@@ -16,7 +16,7 @@ $statusCsvPath = $argv[1];
 $sdvnCsvPath = $argv[2];
 $outputCsvPath = $argv[3] ?? 'output.csv';
 
-$allowedBuckets = [1, 32, 64, 128, 256, 512, 1024];
+$allowedBuckets = [1, 32, 64, 128, 260, 512, 1024];
 
 /**
  * Parse a port value in the form DEVICE-ENET-NUMBER.
