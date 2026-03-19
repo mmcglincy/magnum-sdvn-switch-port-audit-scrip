@@ -341,6 +341,11 @@ foreach ($outputRows as $row) {
     $linkCapacity = trim((string)$row['link_capacity']);
     $linkState = trim((string)$row['link_state']);
     $physicalPortUsed = strtolower(trim((string)$row['physical_port_used'])) === 'true';
+    $deviceBucket = $bucketByDevice[$deviceName] ?? null;
+
+    if ($deviceBucket === 260 && $enetNumber >= 257 && $enetNumber <= 260) {
+        continue;
+    }
 
     if (!isset($atAGlanceByDevice[$deviceName])) {
         $atAGlanceByDevice[$deviceName] = [

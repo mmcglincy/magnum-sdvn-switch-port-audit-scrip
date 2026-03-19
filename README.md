@@ -48,3 +48,6 @@ Additional output file:
 4. `total_open_lanes` - count of unique `enet_number` where `link_capacity` is `OPEN`
 5. `used_physical ports` - count of unique `physical_port` where `physical_port_used` is `true`
 6. `total_used_lanes` - count of unique `enet_number` where `link_capacity` is not `OPEN` and `physical_port_used` is `true`
+
+Special rule:
+- for devices whose ENET bucket is `260`, ENETs `257-260` are excluded from all `at_a_glance.csv` counts
