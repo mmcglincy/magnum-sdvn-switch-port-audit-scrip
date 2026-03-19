@@ -348,8 +348,10 @@ foreach ($outputRows as $row) {
         $atAGlanceByDevice[$deviceName] = [
             'down_links' => 0,
             'open_physical_ports' => [],
+            'total_total_open_lanes' => [],
             'total_open_lanes' => [],
-            'open_lanes_on_partially_used_physical_ports' => [],
+            'used_physical_ports' => [],
+            'total_used_lanes' => [],
         ];
     }
 
@@ -361,12 +363,20 @@ foreach ($outputRows as $row) {
         $atAGlanceByDevice[$deviceName]['open_physical_ports'][$physicalPort] = true;
     }
 
+    if ($physicalPortUsed) {
+        $atAGlanceByDevice[$deviceName]['used_physical_ports'][$physicalPort] = true;
+    }
+
+    if (strcasecmp($linkCapacity, 'OPEN') === 0) {
+        $atAGlanceByDevice[$deviceName]['total_total_open_lanes'][$enetNumber] = true;
+    }
+
     if (strcasecmp($linkCapacity, 'OPEN') === 0 && !$physicalPortUsed) {
         $atAGlanceByDevice[$deviceName]['total_open_lanes'][$physicalPort] = true;
     }
 
-    if (strcasecmp($linkCapacity, 'OPEN') === 0 && $physicalPortUsed) {
-        $atAGlanceByDevice[$deviceName]['open_lanes_on_partially_used_physical_ports'][$enetNumber] = true;
+    if (strcasecmp($linkCapacity, 'OPEN') !== 0 && $physicalPortUsed) {
+        $atAGlanceByDevice[$deviceName]['total_used_lanes'][$physicalPort] = true;
     }
 }
 
@@ -380,8 +390,10 @@ fputcsv($atAGlanceHandle, [
     'device_name',
     'down_links',
     'open_physical ports',
+    'total total_open_lanes',
     'total_open_lanes',
-    'open_lanes_on_partially_used_physical_ports',
+    'used_physical ports',
+    'total_used_lanes',
 ]);
 
 ksort($atAGlanceByDevice, SORT_STRING);
@@ -390,8 +402,10 @@ foreach ($atAGlanceByDevice as $deviceName => $summary) {
         $deviceName,
         (string)$summary['down_links'],
         (string)count($summary['open_physical_ports']),
+        (string)count($summary['total_total_open_lanes']),
         (string)count($summary['total_open_lanes']),
-        (string)count($summary['open_lanes_on_partially_used_physical_ports']),
+        (string)count($summary['used_physical_ports']),
+        (string)count($summary['total_used_lanes']),
     ]);
 }
 
